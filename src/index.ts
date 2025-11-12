@@ -10,6 +10,7 @@ import {
 import chalk from "chalk";
 import inquirer from "inquirer";
 import figlet from "figlet";
+import { exec } from "child_process";
 
 figlet.text(
   "Express Generator",
@@ -100,6 +101,17 @@ async function main() {
     console.log(`📄 File created: ${filename}`);
   }
 
-  console.log("✅ Project setup completed");
-  console.log("Run npm install to continue");
+  exec("npm install", { cwd: projectPath }, (error, stdout, stderr) => {
+    if (error) {
+      console.error("Error executing npm install", error);
+      return;
+    }
+    console.log(`✅ Installation successful: ${stdout}`);
+    if (stderr) {
+      console.error(`❌ Installation Error: ${stderr}`);
+    }
+    if (stdout) {
+      console.log("✅ Project setup completed!");
+    }
+  });
 }
