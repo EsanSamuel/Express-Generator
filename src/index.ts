@@ -138,7 +138,7 @@ async function main() {
   const execInstall = promisify(exec);
 
   console.log(
-    chalk.cyanBright("⌛ Installing packages. Running npm install...")
+    chalk.cyanBright("\n⌛ Installing packages. Running npm install...")
   );
   const { stdout, stderr } = await execInstall("npm install", {
     cwd: projectPath,
