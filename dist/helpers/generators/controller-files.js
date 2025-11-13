@@ -1,4 +1,7 @@
-export const userControllerFile = `
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.userRouteFiles = exports.userControllerFile = void 0;
+exports.userControllerFile = `
 // src/helpers/userHelper.ts
 
 import { Request, Response } from "express";
@@ -34,8 +37,7 @@ export default class UserHelper {
   }
 }
 `;
-
-export const userRouteFiles = `
+exports.userRouteFiles = `
 import { Router } from "express";
 import UserController from "../controllers/userController";
 

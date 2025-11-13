@@ -14,6 +14,8 @@ export const files = {
       dependencies: {
         dotenv: "^17.2.3",
         express: "^5.1.0",
+        ioredis: "^5.8.2",
+        pino: "^10.1.0",
       },
       devDependencies: {
         "@types/express": "^5.0.5",

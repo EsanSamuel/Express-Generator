@@ -4,13 +4,18 @@ import fs from "fs";
 import { files } from "./helpers/generators/config-files";
 import { srcFiles } from "./helpers/generators/src-files";
 import {
+  loggerConfigFile,
+  prismaConfigFile,
+  redisConfigFile,
+  redisServiceFile,
   userControllerFile,
   userRouteFiles,
-} from "./helpers/generators/controller-files";
+} from "./helpers/generators/startercode-files";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import figlet from "figlet";
 import { exec } from "child_process";
+import { promisify } from "util";
 
 figlet.text(
   "Express Generator",
@@ -27,28 +32,37 @@ figlet.text(
       console.error(err);
       return;
     }
-    console.log(chalk.blue(data));
+    console.log(chalk.cyanBright(data));
     main();
   }
 );
 
 async function main() {
+  const defaultName = process.argv[2];
+
   const answers = await inquirer.prompt([
+    ...(!defaultName
+      ? [
+          {
+            type: "input",
+            name: "name",
+            message: "What do you want to call your app?",
+          },
+        ]
+      : []),
     {
-      type: "input",
-      name: "name",
-      message: "What do you want to call your app?",
+      type: "confirm",
+      name: "prisma",
+      message: "Do you want to install Prisma?",
     },
   ]);
 
-  //const projectName = process.argv[2];
-
-  if (!answers.name) {
+  if (!answers.name && !defaultName) {
     console.log("There is no folder name!");
     process.exit(1);
   }
 
-  const projectPath = path.join(process.cwd(), answers.name);
+  const projectPath = path.join(process.cwd(), defaultName || answers.name);
 
   const folders = [
     "controllers",
@@ -67,7 +81,9 @@ async function main() {
 
   if (!fs.existsSync(projectPath)) {
     fs.mkdirSync(projectPath);
-    console.log(chalk.blue(`📁 Created project: ${answers.name}`));
+    console.log(
+      chalk.cyanBright(`📁 Created project: ${defaultName || answers.name}`)
+    );
   }
 
   const srcFolderPath = path.join(projectPath, "src");
@@ -87,6 +103,24 @@ async function main() {
       const filePath = path.join(folderPath, "user.route.ts");
       fs.writeFileSync(filePath, userRouteFiles);
     }
+
+    if (folder === "services") {
+      const filePath = path.join(folderPath, "redis.service.ts");
+      fs.writeFileSync(filePath, redisServiceFile);
+    }
+
+    if (folder === "config") {
+      const filePath = path.join(folderPath, "redis.config.ts");
+      fs.writeFileSync(filePath, redisConfigFile);
+
+      const loggerFilePath = path.join(folderPath, "logger.config.ts");
+      fs.writeFileSync(loggerFilePath, loggerConfigFile);
+    }
+
+    if (folder === "config" && answers.prisma) {
+      const filePath = path.join(folderPath, "prismadb.ts");
+      fs.writeFileSync(filePath, prismaConfigFile);
+    }
   });
 
   for (const [configFilename, command] of Object.entries(files)) {
@@ -101,17 +135,46 @@ async function main() {
     console.log(`📄 File created: ${filename}`);
   }
 
-  exec("npm install", { cwd: projectPath }, (error, stdout, stderr) => {
-    if (error) {
-      console.error("Error executing npm install", error);
-      return;
-    }
-    console.log(`✅ Installation successful: ${stdout}`);
+  const execInstall = promisify(exec);
+
+  console.log(
+    chalk.cyanBright("⌛ Installing packages. Running npm install...")
+  );
+  const { stdout, stderr } = await execInstall("npm install", {
+    cwd: projectPath,
+  });
+
+  console.log(`✅ Installation successful: ${stdout}`);
+  if (stderr) {
+    console.error(`❌ Installation Error: ${stderr}`);
+  }
+  if (answers.prisma) {
+    console.log(chalk.cyanBright("⌛ Installing prisma..."));
+    const { stdout, stderr } = await execInstall("npm install prisma", {
+      cwd: projectPath,
+    });
+
+    console.log(`✅ Prisma installed successful: ${stdout}`);
     if (stderr) {
-      console.error(`❌ Installation Error: ${stderr}`);
+      console.error(`❌ Prisma Installation Failed: ${stderr}`);
     }
     if (stdout) {
-      console.log("✅ Project setup completed!");
+      console.log("✅ Prisma installed!\n");
     }
-  });
+
+    const { stdout: initout, stderr: initerr } = await execInstall(
+      "npx prisma init",
+      {
+        cwd: projectPath,
+      }
+    );
+
+    if (initerr) {
+      console.error(`❌ Prisma Initialization Failed: ${stderr}`);
+    }
+  }
+
+  if (stdout) {
+    console.log("✅ Project setup completed!");
+  }
 }
